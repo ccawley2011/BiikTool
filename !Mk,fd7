@@ -1,0 +1,2 @@
+WimpSlot 16000K
+make -C <Obey$Dir> TARGET_ARCH=-mlibscl
