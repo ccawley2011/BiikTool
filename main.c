@@ -5,6 +5,8 @@
 #include <swis.h>
 #elif defined(_WIN32)
 #include <io.h>
+#else
+#include <sys/stat.h>
 #endif
 
 #include "archive.h"
