@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include "archive.h"
 
 #ifdef __riscos__
 #include <kernel.h>
@@ -9,8 +10,11 @@
 #include <sys/stat.h>
 #endif
 
-#include "archive.h"
+#ifdef __TARGET_SCL__
 #include "ext/getopt/getopt.h"
+#else
+#include <getopt.h>
+#endif
 
 #define MINI_IO_IMPLEMENTATION
 #include "mini_io.h"
