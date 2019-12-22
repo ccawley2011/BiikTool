@@ -159,6 +159,8 @@ int main(int argc, char **argv) {
 
 	for (i = 0; i < header->entry_count; i++) {
 		biik_archive_entry *entry = header->entries[i];
+		if (!entry)
+			continue;
 
 		if (!quiet)
 			fprintf(stderr, "  %s    %s (%d)\n", entry->name,

@@ -57,7 +57,7 @@ int entry_to_file_type(uint32_t type, bool converted) {
 
 biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
 	biik_archive_entry *entry;
-	off_t last_pos;
+	off_t last_pos, file_size;
 
 	entry = malloc(sizeof(biik_archive_entry));
 	if (!entry) {
@@ -78,11 +78,21 @@ biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
 	MiniIO_Read(archive, entry->name, 1, entry->entry_size - 0x8);
 
 	last_pos = MiniIO_Tell(archive);
+	file_size = MiniIO_Size(archive);
 	MiniIO_Seek(archive, entry->offset, MINI_IO_SEEK_SET);
 
 	entry->type = MiniIO_ReadU32(archive, endian);
 	entry->size = MiniIO_ReadU32(archive, endian);
 	entry->header_size = MiniIO_ReadU32(archive, endian);
+	if ((entry->offset + entry->size > (uint32_t)file_size) ||
+	    (entry->offset + entry->header_size > (uint32_t)file_size) ||
+	    (entry->header_size > entry->size)) {
+		warningf("Invalid header for file '%s'", entry->name);
+		MiniIO_Seek(archive, last_pos, MINI_IO_SEEK_SET);
+		free(entry->name);
+		free(entry);
+		return NULL;
+	}
 
 	entry->name2 = malloc(entry->header_size - 0xC);
 	if (!entry->name2) {
@@ -139,7 +149,7 @@ biik_archive_header *read_archive_header(mini_io_context *archive) {
 		return NULL;
 	}
 	if (header->size < 0x18) {
-		warning("This is not a Biik archive");
+		warning("File is too small to be a Biik archive");
 		free(header);
 		return NULL;
 	}
@@ -148,8 +158,8 @@ biik_archive_header *read_archive_header(mini_io_context *archive) {
 	header->game_id = MiniIO_ReadU32(archive, endian);
 	header->index_offset = MiniIO_ReadU32(archive, endian);
 
-	if ((unsigned)file_size < header->index_offset + 12) {
-		warning("This is not a Biik archive");
+	if ((uint32_t)file_size < header->index_offset + 12) {
+		warning("Archive index is outside the file");
 		free(header);
 		return NULL;
 	}
@@ -159,6 +169,14 @@ biik_archive_header *read_archive_header(mini_io_context *archive) {
 	header->unknown = MiniIO_ReadU32(archive, endian);
 	header->index_size = MiniIO_ReadU32(archive, endian);
 	header->index_header_size = MiniIO_ReadU32(archive, endian);
+	if ((uint32_t)file_size < header->index_offset + header->index_header_size) {
+		warning("Invalid header for archive index");
+		free(header);
+		return NULL;
+	}
+
+	if ((uint32_t)file_size < header->index_offset + header->index_size)
+		warning("Archive index may have been truncated");
 
 	header->index_title = malloc(header->index_header_size - 0xC);
 	if (!header->index_title) {
