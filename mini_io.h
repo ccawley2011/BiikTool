@@ -71,6 +71,8 @@ off_t MiniIO_Size(mini_io_context *context);
 int MiniIO_EOF(mini_io_context *context);
 int MiniIO_Flush(mini_io_context *context);
 
+size_t MiniIO_Copy(mini_io_context *input, mini_io_context *output, size_t size, size_t maxnum);
+
 uint8_t MiniIO_ReadU8(mini_io_context *context);
 uint16_t MiniIO_ReadLE16(mini_io_context *context);
 uint16_t MiniIO_ReadBE16(mini_io_context *context);
@@ -228,6 +230,27 @@ int MiniIO_Flush(mini_io_context *context) {
 }
 
 /***************************************/
+
+size_t MiniIO_Copy(mini_io_context *input, mini_io_context *output, size_t size, size_t maxnum) {
+	size_t i, read = 0;
+	char *block;
+	assert(input);
+	assert(output);
+	block = malloc(size);
+	if (!block)
+		return 0;
+
+	for (i = 0; i < maxnum; i++) {
+		if (MiniIO_Read(input, block, size, 1) == 0)
+			break;    
+		if (MiniIO_Write(output, block, size, 1) == 0)
+			break;
+		read++;
+	}
+
+	free(block);
+	return read;
+}
 
 uint8_t MiniIO_ReadU8(mini_io_context *context) {
 	uint8_t value = 0;
@@ -570,7 +593,7 @@ static size_t mini_io_mem_write(mini_io_context *context, const void *ptr, size_
 	memcpy(data->ptr, ptr, num * size);
 	data->ptr += num * size;
 
-	return 0;
+	return num;
 }
 
 static void mini_io_mem_seek(mini_io_context *context, off_t n, int whence) {

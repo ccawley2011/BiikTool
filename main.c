@@ -76,12 +76,6 @@ bool dump_entry_to_file(mini_io_context *input, biik_archive_entry *entry, const
 	uint32_t size = entry->size - entry->header_size;
 	mini_io_context *output;
 	char filename[1024];
-	char *block = malloc(size);
-	if (!block)
-		return false;
-
-	MiniIO_Seek(input, offset, MINI_IO_SEEK_SET);
-	MiniIO_Read(input, block, 1, size);
 
 	if (nfs_exts) {
 		snprintf(filename, 1024, "%s" PATH_SEP "%s,%03x", path,
@@ -93,16 +87,14 @@ bool dump_entry_to_file(mini_io_context *input, biik_archive_entry *entry, const
 	output = MiniIO_OpenFile(filename, MINI_IO_OPEN_WRITE);
 	if (!output) {
 		warningf("Could not open file %s", filename);
-		free(block);
 		return false;
 	}
 
-	MiniIO_Write(output, block, 1, size);
+	MiniIO_Seek(input, offset, MINI_IO_SEEK_SET);
+	MiniIO_Copy(input, output, size, 1);
 	MiniIO_DeleteContext(output);
 
 	my_settype(filename, entry_to_file_type(entry->type, false));
-
-	free(block);
 
 	return true;
 }
