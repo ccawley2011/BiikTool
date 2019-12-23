@@ -99,17 +99,20 @@ bool dump_entry_to_file(mini_io_context *input, biik_archive_entry *entry, const
 	return true;
 }
 
-const char *syntax_string = "Syntax: %s [-n] [-o <output dir>] [-q] <filename>\n";
+const char *syntax_string = "Syntax: %s [-l] [-n] [-o <output dir>] [-q] <filename>\n";
 
 int main(int argc, char **argv) {
 	mini_io_context *context;
 	biik_archive_header *header;
-	bool nfs_ext = false, quiet = false;
+	bool list_files = false, nfs_ext = false, quiet = false;
 	const char *infile = NULL, *outpath = NULL;
 	int i, c;
 
-	while ((c = getopt(argc, argv, "no:q")) != -1) {
+	while ((c = getopt(argc, argv, "lno:q")) != -1) {
 		switch (c) {
+		case 'l':
+			list_files = true;
+			break;
 		case 'n':
 			nfs_ext = true;
 			break;
@@ -154,7 +157,7 @@ int main(int argc, char **argv) {
 		if (!entry)
 			continue;
 
-		if (!quiet)
+		if (list_files)
 			fprintf(stderr, "  %s    %s (%d)\n", entry->name,
 				get_type_name(entry->type), entry->type);
 
@@ -164,7 +167,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	free_archive_header(header);
-	if (!quiet)
+	if (list_files)
 		fputc('\n', stderr);
 
 	MiniIO_DeleteContext(context);
