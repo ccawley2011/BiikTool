@@ -13,13 +13,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef __cplusplus
-extern "C" {
+/* TODO: Use our own types? */
+#ifdef _MSC_VER
+typedef __int64 off_t;
+#else
+#include <sys/types.h>
 #endif
 
-/* TODO: Use our own types? */
-#if defined(_MSC_VER) || defined(__WATCOMC__)
-typedef __int64 off_t;
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 typedef struct mini_io_context mini_io_context;

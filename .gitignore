@@ -1,4 +1,7 @@
 biik-tool
 *.o
+*.obj
+*.err
+*.elf
 *.exe
 *,ff8

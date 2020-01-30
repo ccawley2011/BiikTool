@@ -1,0 +1,17 @@
+CC = cl /nologo
+LD = $(CC)
+RM = del
+
+CFLAGS = /Ox /W4 /MT
+
+OBJS = main.obj archive.obj
+EXECUTABLE = biik-tool.exe
+
+all: $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJS)
+	$(LD) $(LDFLAGS) /Fe$@ $**
+
+clean:
+	$(RM) $(EXECUTABLE)
+	$(RM) $(OBJS)

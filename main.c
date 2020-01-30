@@ -4,13 +4,14 @@
 #ifdef __riscos__
 #include <kernel.h>
 #include <swis.h>
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined(__WATCOMC__)
+#include <direct.h>
 #include <io.h>
 #else
 #include <sys/stat.h>
 #endif
 
-#ifdef __TARGET_SCL__
+#if defined(__TARGET_SCL__) || defined(_MSC_VER) || defined(__WATCOMC__)
 #include "ext/getopt/getopt.h"
 #else
 #include <getopt.h>
@@ -53,6 +54,8 @@ void my_mkdir(const char *path) {
 	_kernel_swi(OS_File, &regs, &regs);
 #elif defined(_WIN32)
 	_mkdir(path);
+#elif defined(__WATCOMC__)
+	mkdir(path);
 #else
 	mkdir(path, 0755);
 #endif
