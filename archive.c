@@ -55,6 +55,12 @@ int entry_to_file_type(uint32_t type, bool converted) {
 	return 0xFFD;
 }
 
+mini_io_context *open_archive_entry(mini_io_context *input, biik_archive_entry *entry, int safe) {
+	off_t start = entry->offset + entry->header_size;
+	off_t size = entry->size - entry->header_size;
+	return MiniIO_CreateFromContext(input, start, size, 0, safe);
+}
+
 biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
 	biik_archive_entry *entry;
 	off_t last_pos, file_size;

@@ -1,7 +1,6 @@
 /*
  * TODO:
- *  - More implementations:
- *    - Sub-contexts
+ *  - More implementations
  */
 
 #ifndef MINI_IO_H
@@ -106,6 +105,7 @@ mini_io_context *MiniIO_CreateFromFP(FILE *stream, int autoclose);
 #endif
 mini_io_context *MiniIO_CreateFromMem(void *mem, size_t size);
 mini_io_context *MiniIO_CreateFromConstMem(const void *mem, size_t size);
+mini_io_context *MiniIO_CreateFromContext(mini_io_context *parent, off_t start, off_t size, int autoclose, int safe);
 
 #ifdef __GNUC__
 # define MINI_IO_GCC_ATLEAST(x,y) ((__GNUC__ > x) || (__GNUC__ == x && __GNUC_MINOR__ >= y))
@@ -677,6 +677,118 @@ mini_io_context *MiniIO_CreateFromConstMem(const void *mem, size_t size) {
 	}
 
 	context->readonly = 1;
+	return context;
+}
+
+typedef struct {
+	mini_io_context *parent;
+	off_t start, pos, end;
+	int safe;
+} mini_io_sub_data;
+
+static size_t mini_io_sub_read(mini_io_context *context, void *ptr, size_t size, size_t maxnum) {
+	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
+	size_t i, read = 0;
+
+	if (data->safe) {
+		MiniIO_Seek(context, 0, MINI_IO_SEEK_CUR);
+	}
+
+	for (i = 0; i < maxnum; i++) {
+		if (data->pos >= data->end)
+			break;
+		if (MiniIO_Read(data->parent, ptr, size, 1) == 0)
+			break;
+		ptr = (char *)ptr + size;
+		data->pos += size;
+		read++;
+	}
+
+	return read;
+}
+
+static size_t mini_io_sub_write(mini_io_context *context, const void *ptr, size_t size, size_t num) {
+	MINI_IO_UNUSED(context);
+	MINI_IO_UNUSED(ptr);
+	MINI_IO_UNUSED(size);
+	MINI_IO_UNUSED(num);
+	return 0;
+}
+
+static void mini_io_sub_seek(mini_io_context *context, off_t n, int whence) {
+	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
+	off_t newpos;
+
+	switch(whence) {
+	case MINI_IO_SEEK_SET: newpos = data->start + n; break;
+	case MINI_IO_SEEK_CUR: newpos = data->pos + n; break;
+	case MINI_IO_SEEK_END: newpos = data->end + n; break;
+	default:
+		assert(0);
+		return;
+	}
+
+	newpos = MINI_IO_CLAMP(newpos, data->start, data->end);
+	MiniIO_Seek(data->parent, newpos, MINI_IO_SEEK_SET);
+}
+
+static off_t mini_io_sub_tell(mini_io_context *context) {
+	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
+	return data->pos - data->start;
+}
+
+static off_t mini_io_sub_size(mini_io_context *context) {
+	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
+	return data->end - data->start;
+}
+
+static int mini_io_sub_eof(mini_io_context *context) {
+	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
+	return (data->pos == data->end) | MiniIO_EOF(data->parent);
+}
+
+static int mini_io_sub_flush(mini_io_context *context) {
+	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
+	return MiniIO_Flush(data->parent);
+}
+
+static int mini_io_sub_close(mini_io_context *context) {
+	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
+	return MiniIO_DeleteContext(data->parent);
+}
+
+static mini_io_callbacks mini_io_sub_callbacks = {
+	mini_io_sub_read,
+	mini_io_sub_write,
+	mini_io_sub_seek,
+	mini_io_sub_tell,
+	mini_io_sub_size,
+	mini_io_sub_eof,
+	mini_io_sub_flush,
+	mini_io_sub_close
+};
+
+mini_io_context *MiniIO_CreateFromContext(mini_io_context *parent, off_t start, off_t size, int autoclose, int safe) {
+	mini_io_context *context;
+	mini_io_sub_data *data = malloc(sizeof(mini_io_sub_data));
+	if (!data) {
+		return NULL;
+	}
+
+	data->parent = parent;
+	data->start = start;
+	data->pos = start;
+	data->end = start + size;
+	data->safe = safe;
+
+	context = MiniIO_CreateContext(&mini_io_sub_callbacks, data);
+	if (!context) {
+		free(data);
+		return NULL;
+	}
+
+	MiniIO_Seek(data->parent, data->start, MINI_IO_SEEK_SET);
+	context->autoclose = autoclose;
 	return context;
 }
 

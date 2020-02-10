@@ -74,30 +74,37 @@ void my_settype(const char *path, int type) {
 #endif
 }
 
-bool dump_entry_to_file(mini_io_context *input, biik_archive_entry *entry, const char *path, bool nfs_exts) {
-	uint32_t offset = entry->offset + entry->header_size;
-	uint32_t size = entry->size - entry->header_size;
+mini_io_context *open_output_file(const char *path, const char *name, int ftype, bool nfs_exts) {
 	mini_io_context *output;
 	char filename[1024];
 
 	if (nfs_exts) {
-		snprintf(filename, 1024, "%s" PATH_SEP "%s,%03x", path,
-			entry->name, entry_to_file_type(entry->type, false));
+		snprintf(filename, 1024, "%s" PATH_SEP "%s,%03x", path, name, ftype);
 	} else {
-		snprintf(filename, 1024, "%s" PATH_SEP "%s", path, entry->name);
+		snprintf(filename, 1024, "%s" PATH_SEP "%s", path, name);
 	}
 
 	output = MiniIO_OpenFile(filename, MINI_IO_OPEN_WRITE);
 	if (!output) {
 		warningf("Could not open file %s", filename);
-		return false;
+		return NULL;
 	}
 
-	MiniIO_Seek(input, offset, MINI_IO_SEEK_SET);
-	MiniIO_Copy(input, output, size, 1);
-	MiniIO_DeleteContext(output);
+	my_settype(filename, ftype);
 
-	my_settype(filename, entry_to_file_type(entry->type, false));
+	return output;
+}
+
+bool dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, bool nfs_exts) {
+	mini_io_context *input = open_archive_entry(context, entry, 0);
+	mini_io_context *output = open_output_file(path, entry->name, entry_to_file_type(entry->type, false), nfs_exts);
+	if (!input || !output)
+		return false;
+
+	MiniIO_Copy(input, output, MiniIO_Size(input), 1);
+
+	MiniIO_DeleteContext(output);
+	MiniIO_DeleteContext(input);
 
 	return true;
 }
