@@ -38,6 +38,10 @@ void warningf(const char *message, ...) {
 	fputc('\n', stderr);
 }
 
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+#define snprintf(a,b,...) _snprintf_s(a,b,_TRUNCATE,__VA_ARGS__)
+#endif
+
 #ifdef __riscos__
 # define PATH_SEP "."
 #elif defined(_WIN32)
@@ -101,7 +105,7 @@ void dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, con
 	if (!input || !output)
 		return;
 
-	MiniIO_Copy(input, output, MiniIO_Size(input), 1);
+	MiniIO_Copy(input, output, (size_t)MiniIO_Size(input), 1);
 
 	MiniIO_DeleteContext(output);
 	MiniIO_DeleteContext(input);
