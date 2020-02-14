@@ -41,7 +41,7 @@ struct {
 	{ ENTRY_TYPE_DRAW,    0xAFF, 0xAFF }
 };
 
-int entry_to_file_type(uint32_t type, bool converted) {
+int entry_to_file_type(uint32_t type, int converted) {
 	int i;
 	for (i = 0; i < 4; i++) {
 		if (file_type_map[i].entry_type == type) {

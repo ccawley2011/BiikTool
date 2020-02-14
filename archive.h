@@ -3,7 +3,6 @@
 
 #include "mini_io.h"
 
-#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct biik_archive_entry {
@@ -54,7 +53,7 @@ enum {
 const char *get_game_name(uint32_t id);
 const char *get_type_name(uint32_t id);
 
-int entry_to_file_type(uint32_t type, bool converted);
+int entry_to_file_type(uint32_t type, int converted);
 
 mini_io_context *open_archive_entry(mini_io_context *input, biik_archive_entry *entry, int safe);
 biik_archive_header *read_archive_header(mini_io_context *archive);

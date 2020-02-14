@@ -74,7 +74,7 @@ void my_settype(const char *path, int type) {
 #endif
 }
 
-mini_io_context *open_output_file(const char *path, const char *name, int ftype, bool nfs_exts) {
+mini_io_context *open_output_file(const char *path, const char *name, int ftype, int nfs_exts) {
 	mini_io_context *output;
 	char filename[1024];
 
@@ -95,18 +95,16 @@ mini_io_context *open_output_file(const char *path, const char *name, int ftype,
 	return output;
 }
 
-bool dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, bool nfs_exts) {
+void dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
 	mini_io_context *input = open_archive_entry(context, entry, 0);
-	mini_io_context *output = open_output_file(path, entry->name, entry_to_file_type(entry->type, false), nfs_exts);
+	mini_io_context *output = open_output_file(path, entry->name, entry_to_file_type(entry->type, 0), nfs_exts);
 	if (!input || !output)
-		return false;
+		return;
 
 	MiniIO_Copy(input, output, MiniIO_Size(input), 1);
 
 	MiniIO_DeleteContext(output);
 	MiniIO_DeleteContext(input);
-
-	return true;
 }
 
 const char *syntax_string = "Syntax: %s [-l] [-n] [-o <output dir>] [-q] <filename>\n";
@@ -114,23 +112,23 @@ const char *syntax_string = "Syntax: %s [-l] [-n] [-o <output dir>] [-q] <filena
 int main(int argc, char **argv) {
 	mini_io_context *context;
 	biik_archive_header *header;
-	bool list_files = false, nfs_ext = false, quiet = false;
+	int list_files = 0, nfs_ext = 0, quiet = 0;
 	const char *infile = NULL, *outpath = NULL;
 	int i, c;
 
 	while ((c = getopt(argc, argv, "lno:q")) != -1) {
 		switch (c) {
 		case 'l':
-			list_files = true;
+			list_files = 1;
 			break;
 		case 'n':
-			nfs_ext = true;
+			nfs_ext = 1;
 			break;
 		case 'o':
 			outpath = optarg;
 			break;
 		case 'q':
-			quiet = true;
+			quiet = 1;
 			break;
 		case '?':
 			return 1;
