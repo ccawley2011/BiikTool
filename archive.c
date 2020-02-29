@@ -2,10 +2,8 @@
 #include <assert.h>
 
 #include "archive.h"
+#include "debug.h"
 #include "mini_io.h"
-
-void warning(const char *message);
-void warningf(const char *message, ...);
 
 const char *get_game_name(uint32_t id) {
 	switch (id) {
@@ -111,7 +109,7 @@ biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
 	MiniIO_Read(archive, entry->name2, 1, entry->header_size - 0xC);
 
 	if (strcmp(entry->name, entry->name2) != 0)
-		warningf("Entry names '%s' and '%s' do not match");
+		warningf("Entry names '%s' and '%s' do not match", entry->name, entry->name2);
 
 	MiniIO_Seek(archive, last_pos, MINI_IO_SEEK_SET);
 	return entry;

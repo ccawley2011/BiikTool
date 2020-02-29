@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include "archive.h"
+#include "debug.h"
 
 #ifdef __riscos__
 #include <kernel.h>
