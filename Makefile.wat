@@ -6,7 +6,7 @@ system = nt
 CFLAGS += -bt=$(system) -zq -oaxt -d0 -wx -fo=.obj
 LDFLAGS += system $(system)
 
-OBJS = main.obj archive.obj
+OBJS = main.obj archive.obj extract.obj
 EXECUTABLE = biik-tool.exe
 
 all: $(EXECUTABLE)
