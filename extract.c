@@ -77,7 +77,7 @@ mini_io_context *open_output_file(const char *path, const char *name, int ftype,
 
 void dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
 	mini_io_context *input = open_archive_entry(context, entry, 0);
-	mini_io_context *output = open_output_file(path, entry->name, entry_to_file_type(entry->type, 0), nfs_exts);
+	mini_io_context *output = open_output_file(path, entry->name, entry_to_file_type(entry->type), nfs_exts);
 	if (!input || !output)
 		return;
 

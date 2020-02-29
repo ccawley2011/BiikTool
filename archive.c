@@ -29,28 +29,12 @@ const char *get_type_name(uint32_t type) {
 	}
 }
 
-struct {
-	uint32_t entry_type;
-	int file_type, converted_type;
-} file_type_map[] = {
-	{ ENTRY_TYPE_GRAPHIC, 0xFFD, 0xFF9 },
-	{ ENTRY_TYPE_TRACKER, 0xCB6, 0xCB6 },
-	{ ENTRY_TYPE_SCRIPT,  0xFFD, 0xFFF },
-	{ ENTRY_TYPE_DRAW,    0xAFF, 0xAFF }
-};
-
-int entry_to_file_type(uint32_t type, int converted) {
-	int i;
-	for (i = 0; i < 4; i++) {
-		if (file_type_map[i].entry_type == type) {
-			if (converted)
-				return file_type_map[i].converted_type;
-			else
-				return file_type_map[i].file_type;
-		}
+int entry_to_file_type(uint32_t type) {
+	switch (type) {
+	case ENTRY_TYPE_TRACKER: return 0xCB6;
+	case ENTRY_TYPE_DRAW:    return 0xAFF;
+	default:                 return 0xFFD;
 	}
-
-	return 0xFFD;
 }
 
 mini_io_context *open_archive_entry(mini_io_context *input, biik_archive_entry *entry, int safe) {
