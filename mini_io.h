@@ -113,10 +113,16 @@ mini_io_context *MiniIO_CreateFromContext(mini_io_context *parent, off_t start, 
 # define MINI_IO_GCC_ATLEAST(x,y) 0
 #endif
 
+#ifdef __has_builtin
+# define MINI_IO_HAS_BUILTIN(x) __has_builtin(x)
+#else
+# define MINI_IO_HAS_BUILTIN(x) 0
+#endif
+
 #ifndef MINI_IO_BSWAP16
 # if defined(_MSC_VER) && _MSC_VER >= 1300
 #  define MINI_IO_BSWAP16(x) _byteswap_ushort(x)
-# elif MINI_IO_GCC_ATLEAST(4, 8)
+# elif MINI_IO_GCC_ATLEAST(4, 8) || MINI_IO_HAS_BUILTIN(__builtin_bswap16)
 #  define MINI_IO_BSWAP16(x) __builtin_bswap16(x)
 # else
 #  define MINI_IO_BSWAP16(x) ((uint16_t) ((x << 8) | (x >> 8)))
@@ -126,7 +132,7 @@ mini_io_context *MiniIO_CreateFromContext(mini_io_context *parent, off_t start, 
 #ifndef MINI_IO_BSWAP32
 # if defined(_MSC_VER) && _MSC_VER >= 1300
 #  define MINI_IO_BSWAP32(x) _byteswap_ulong(x)
-# elif MINI_IO_GCC_ATLEAST(4, 3)
+# elif MINI_IO_GCC_ATLEAST(4, 3) || MINI_IO_HAS_BUILTIN(__builtin_bswap32)
 #  define MINI_IO_BSWAP32(x) __builtin_bswap32(x)
 # else
 #  define MINI_IO_BSWAP32(x) ((uint32_t) ((((x) >> 24) & 0x00FF) | \
@@ -139,7 +145,7 @@ mini_io_context *MiniIO_CreateFromContext(mini_io_context *parent, off_t start, 
 #ifndef MINI_IO_BSWAP64
 # if defined(_MSC_VER) && _MSC_VER >= 1300
 #  define MINI_IO_BSWAP64(x) _byteswap_uint64(x)
-# elif MINI_IO_GCC_ATLEAST(4, 3)
+# elif MINI_IO_GCC_ATLEAST(4, 3) || MINI_IO_HAS_BUILTIN(__builtin_bswap64)
 #  define MINI_IO_BSWAP64(x) __builtin_bswap64(x)
 # else
 #  define MINI_IO_BSWAP64(x) ((uint64_t) ((((x) >> 56) & 0x000000FF) | \
