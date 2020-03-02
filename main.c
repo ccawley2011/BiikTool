@@ -30,17 +30,20 @@ void warningf(const char *message, ...) {
 	fputc('\n', stderr);
 }
 
-const char *syntax_string = "Syntax: %s [-l] [-n] [-o <output dir>] [-q] <filename>\n";
+const char *syntax_string = "Syntax: %s [-c] [-l] [-n] [-o <output dir>] [-q] <filename>\n";
 
 int main(int argc, char **argv) {
 	mini_io_context *context;
 	biik_archive_header *header;
-	int list_files = 0, nfs_ext = 0, quiet = 0;
+	int convert = 0, list_files = 0, nfs_ext = 0, quiet = 0;
 	const char *infile = NULL, *outpath = NULL;
 	int i, c;
 
-	while ((c = getopt(argc, argv, "lno:q")) != -1) {
+	while ((c = getopt(argc, argv, "clno:q")) != -1) {
 		switch (c) {
+		case 'c':
+			convert = 1;
+			break;
 		case 'l':
 			list_files = 1;
 			break;
@@ -93,7 +96,7 @@ int main(int argc, char **argv) {
 				get_type_name(entry->type), entry->type);
 
 		if (outpath) {
-			dump_entry_to_file(context, entry, outpath, nfs_ext);
+			dump_to_file(context, entry, outpath, nfs_ext, convert);
 		}
 	}
 	free_archive_header(header);

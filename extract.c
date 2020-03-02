@@ -1,4 +1,5 @@
 #include "archive.h"
+#include "compress.h"
 #include "debug.h"
 #include "extract.h"
 #include "mini_io.h"
@@ -85,4 +86,56 @@ void dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, con
 
 	MiniIO_DeleteContext(output);
 	MiniIO_DeleteContext(input);
+}
+
+void dump_script_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
+	mini_io_context *input, *output;
+	uint32_t unknown, size, realsize;
+	char *block;
+
+	input = open_archive_entry(context, entry, 0);
+	if (!input)
+		return;
+
+	unknown = MiniIO_ReadLE32(input);
+	size = MiniIO_ReadLE32(input);
+	if (unknown > 0xFFFFFF) {
+		unknown = MINI_IO_BSWAP32(unknown);
+		size = MINI_IO_BSWAP32(size);
+	}
+	if (unknown != 1)
+		warningf("Unexpected script header: %d", unknown);
+
+	block = malloc(size);
+	if (!block) {
+		MiniIO_DeleteContext(input);
+		return;
+	}
+
+	realsize = lzw_decode(input, block, size);
+	if (size != realsize)
+		warningf("Unexpected end of stream in file %s: expected %d bytes, got %d bytes", entry->name, size, realsize);
+
+	MiniIO_DeleteContext(input);
+
+	output = open_output_file(path, entry->name, 0xfff, nfs_exts);
+	if (!output) {
+		free(block);
+		return;
+	}
+
+	MiniIO_Write(output, block, realsize, 1);
+	MiniIO_DeleteContext(output);
+	free(block);
+}
+
+void dump_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts, int convert) {
+	if (convert) {
+		switch (entry->type) {
+		case ENTRY_TYPE_SCRIPT:
+			dump_script_to_file(context, entry, path, nfs_exts);
+			return;
+		}
+	}
+	dump_entry_to_file(context, entry, path, nfs_exts);
 }

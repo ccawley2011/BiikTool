@@ -4,7 +4,7 @@ LD = $(CC)
 CFLAGS += -std=gnu89 -O3
 CPPFLAGS += -Wall -Wextra -pedantic
 
-OBJS = main.o archive.o extract.o
+OBJS = main.o archive.o extract.o compress.o
 EXECUTABLE = biik-tool
 
 all: $(EXECUTABLE)
