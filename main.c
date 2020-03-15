@@ -1,4 +1,3 @@
-#include <stdarg.h>
 #include "archive.h"
 #include "debug.h"
 #include "extract.h"
@@ -11,24 +10,6 @@
 
 #define MINI_IO_IMPLEMENTATION
 #include "mini_io.h"
-
-void warning(const char *message) {
-	fputs("WARNING: ", stderr);
-	fputs(message, stderr);
-	fputc('\n', stderr);
-}
-
-void warningf(const char *message, ...) {
-	va_list args;
-
-	fputs("WARNING: ", stderr);
-
-	va_start(args, message);
-	vfprintf(stderr, message, args);
-	va_end(args);
-
-	fputc('\n', stderr);
-}
 
 const char *syntax_string = "Syntax: %s [-c] [-l] [-n] [-o <output dir>] [-q] <filename>\n";
 
