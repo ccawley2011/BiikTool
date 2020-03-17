@@ -749,8 +749,8 @@ static void mini_io_sub_seek(mini_io_context *context, off_t n, int whence) {
 		return;
 	}
 
-	newpos = MINI_IO_CLAMP(newpos, data->start, data->end);
-	MiniIO_Seek(data->parent, newpos, MINI_IO_SEEK_SET);
+	data->pos = MINI_IO_CLAMP(newpos, data->start, data->end);
+	MiniIO_Seek(data->parent, data->pos, MINI_IO_SEEK_SET);
 }
 
 static off_t mini_io_sub_tell(mini_io_context *context) {
