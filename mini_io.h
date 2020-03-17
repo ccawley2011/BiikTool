@@ -163,8 +163,23 @@ mini_io_context *MiniIO_CreateFromContext(mini_io_context *parent, off_t start, 
 #define MINI_IO_BIG_ENDIAN    4321
 
 #if !defined(MINI_IO_ENDIAN)
-/* TODO: Autodetect this! */
-# define MINI_IO_ENDIAN MINI_IO_LITTLE_ENDIAN
+/* __BYTE_ORDER__ is defined by GCC 4.6+ and clang 3.2+
+ * TODO: GCC also defines __FLOAT_WORD_ORDER__.
+ */
+# ifdef __BYTE_ORDER__
+#  if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#   define MINI_IO_ENDIAN MINI_IO_LITTLE_ENDIAN
+#  elif (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#   define MINI_IO_ENDIAN MINI_IO_BIG_ENDIAN
+#  else
+#   error Unsupported value of __BYTE_ORDER__.
+#  endif
+# elif defined(_MSC_VER) || defined(__WATCOMC__)
+#  define MINI_IO_ENDIAN MINI_IO_LITTLE_ENDIAN
+# else
+#  warning Could not determine byte order, assuming little endian.
+#  define MINI_IO_ENDIAN MINI_IO_LITTLE_ENDIAN
+# endif
 #endif
 
 #if MINI_IO_ENDIAN == MINI_IO_LITTLE_ENDIAN
