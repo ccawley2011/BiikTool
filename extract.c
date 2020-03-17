@@ -3,6 +3,7 @@
 #include "debug.h"
 #include "extract.h"
 #include "mini_io.h"
+#include "musx.h"
 
 #ifdef __riscos__
 #include <kernel.h>
@@ -100,6 +101,28 @@ uint32_t dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry,
 	return (uint32_t)(size * read);
 }
 
+uint32_t dump_tracker_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
+	mini_io_context *input, *output;
+	uint32_t size;
+
+	input = open_archive_entry(context, entry, 0);
+	if (!input)
+		return 0;
+
+	output = open_output_file(path, entry->name, 0xcb6, nfs_exts);
+	if (!output) {
+		MiniIO_DeleteContext(input);
+		return 0;
+	}
+
+	size = decompress_musx(input, output);
+
+	MiniIO_DeleteContext(output);
+	MiniIO_DeleteContext(input);
+
+	return size;
+}
+
 uint32_t dump_script_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
 	mini_io_context *input, *output;
 	uint32_t unknown, size, realsize;
@@ -146,6 +169,8 @@ uint32_t dump_script_to_file(mini_io_context *context, biik_archive_entry *entry
 uint32_t dump_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts, int convert) {
 	if (convert) {
 		switch (entry->type) {
+		case ENTRY_TYPE_TRACKER:
+			return dump_tracker_to_file(context, entry, path, nfs_exts);
 		case ENTRY_TYPE_SCRIPT:
 			return dump_script_to_file(context, entry, path, nfs_exts);
 		}
