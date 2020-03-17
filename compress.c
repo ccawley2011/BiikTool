@@ -1,10 +1,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "archive.h"
 #include "compress.h"
-#include "debug.h"
-#include "extract.h"
 #include "mini_io.h"
 
 /*
@@ -23,7 +20,7 @@ enum {
 };
 
 struct lzw_dict {
-	int prefix;
+	uint16_t prefix;
 	char postfix, first_byte;
 };
 
@@ -32,13 +29,13 @@ struct lzw_dict {
 uint32_t lzw_decode(mini_io_context *in, char *out, uint32_t outsize) {
 	struct lzw_dict dict[MAX_TABLE];
 	unsigned int bitpos = 0, nbit = SET_BITS + 1;
-	int dictsize = FIRST_CODE;
-	int prev = CLEAR_CODE;
+	uint16_t dictsize = FIRST_CODE;
+	uint16_t prev = CLEAR_CODE;
 	uint32_t buf24 = ((MiniIO_ReadU8(in) << 16) | (MiniIO_ReadU8(in) << 8) | MiniIO_ReadU8(in));
 	uint32_t size = 0;
 
 	while (prev != END_CODE) {
-		int cw;
+		uint16_t cw;
 		if (prev == CLEAR_CODE) {
 			nbit = SET_BITS + 1;
 			dictsize = FIRST_CODE;
@@ -56,7 +53,8 @@ uint32_t lzw_decode(mini_io_context *in, char *out, uint32_t outsize) {
 
 		/* Process the codeword cw */
 		if (cw != CLEAR_CODE && cw != END_CODE) {
-			int outcw, i, j = 0;
+			uint16_t outcw;
+			int i, j = 0;
 			char temp[1024];
 			char newbyte;
 			if (cw < dictsize) {
