@@ -76,26 +76,38 @@ mini_io_context *open_output_file(const char *path, const char *name, int ftype,
 	return output;
 }
 
-void dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
-	mini_io_context *input = open_archive_entry(context, entry, 0);
-	mini_io_context *output = open_output_file(path, entry->name, entry_to_file_type(entry->type), nfs_exts);
-	if (!input || !output)
-		return;
+uint32_t dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
+	mini_io_context *input, *output;
+	off_t size;
+	size_t read;
 
-	MiniIO_Copy(input, output, (size_t)MiniIO_Size(input), 1);
+	input = open_archive_entry(context, entry, 0);
+	if (!input)
+		return 0;
+
+	output = open_output_file(path, entry->name, entry_to_file_type(entry->type), nfs_exts);
+	if (!output) {
+		MiniIO_DeleteContext(input);
+		return 0;
+	}
+
+	size = MiniIO_Size(input);
+	read = MiniIO_Copy(input, output, size, 1);
 
 	MiniIO_DeleteContext(output);
 	MiniIO_DeleteContext(input);
+
+	return (uint32_t)(size * read);
 }
 
-void dump_script_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
+uint32_t dump_script_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
 	mini_io_context *input, *output;
 	uint32_t unknown, size, realsize;
 	char *block;
 
 	input = open_archive_entry(context, entry, 0);
 	if (!input)
-		return;
+		return 0;
 
 	unknown = MiniIO_ReadLE32(input);
 	size = MiniIO_ReadLE32(input);
@@ -109,7 +121,7 @@ void dump_script_to_file(mini_io_context *context, biik_archive_entry *entry, co
 	block = malloc(size);
 	if (!block) {
 		MiniIO_DeleteContext(input);
-		return;
+		return 0;
 	}
 
 	realsize = lzw_decode(input, block, size);
@@ -121,21 +133,22 @@ void dump_script_to_file(mini_io_context *context, biik_archive_entry *entry, co
 	output = open_output_file(path, entry->name, 0xfff, nfs_exts);
 	if (!output) {
 		free(block);
-		return;
+		return 0;
 	}
 
 	MiniIO_Write(output, block, realsize, 1);
 	MiniIO_DeleteContext(output);
 	free(block);
+
+	return realsize;
 }
 
-void dump_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts, int convert) {
+uint32_t dump_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts, int convert) {
 	if (convert) {
 		switch (entry->type) {
 		case ENTRY_TYPE_SCRIPT:
-			dump_script_to_file(context, entry, path, nfs_exts);
-			return;
+			return dump_script_to_file(context, entry, path, nfs_exts);
 		}
 	}
-	dump_entry_to_file(context, entry, path, nfs_exts);
+	return dump_entry_to_file(context, entry, path, nfs_exts);
 }
