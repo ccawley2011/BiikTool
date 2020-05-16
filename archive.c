@@ -7,9 +7,10 @@
 
 const char *get_game_name(uint32_t id) {
 	switch (id) {
-	case GAME_ID_DINOSAUR:  return "Dinosaur Discovery";
+	case GAME_ID_DINODEMO:  return "Dinosaur Discovery demo";
 	case GAME_ID_MOUSE:     return "A Mouse in Holland";
 	case GAME_ID_FLOSSY:    return "Explore with Flossy the Frog";
+	case GAME_ID_DINOSAUR:  return "Dinosaur Discovery";
 	case GAME_ID_BETSI:     return "Betsi the Tudor Dog";
 	case GAME_ID_GUARDIANS: return "Guardians of the Greenwood";
 	case GAME_ID_FIFI:      return "Find It Fix It";

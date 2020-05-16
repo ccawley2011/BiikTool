@@ -41,9 +41,10 @@ typedef struct biik_archive_header {
 } biik_archive_header;
 
 enum {
-	GAME_ID_DINOSAUR = 1,
+	GAME_ID_DINODEMO = 1,
 	GAME_ID_MOUSE = 3,
 	GAME_ID_FLOSSY = 5,
+	GAME_ID_DINOSAUR = 6,
 	GAME_ID_BETSI = 8,
 	GAME_ID_GUARDIANS = 13,
 	GAME_ID_FIFI = 18,

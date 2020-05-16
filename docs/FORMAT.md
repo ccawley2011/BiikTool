@@ -11,9 +11,10 @@ All values are in little-endian for RISC OS and Windows data files, and in big-e
 | 0x14   | 4    | Offset to file index.                                                                                |
 
 The Game ID can be one of the following values:
- - **Dinosaur Discovery:** *0x01*
+ - **Dinosaur Discovery demo:** *0x01*
  - **A Mouse in Holland:** *0x03*
  - **Explore with Flossy the Frog:** *0x05*
+ - **Dinosaur Discovery:** *0x06*
  - **Betsi the Tudor Dog:** *0x08*
  - **Guardians of the Greenwood:** *0x0D*
  - **Find It Fix It:** *0x12*
