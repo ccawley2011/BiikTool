@@ -2,7 +2,7 @@
 #include "debug.h"
 #include "extract.h"
 
-#if defined(__TARGET_SCL__) || defined(_MSC_VER) || defined(__WATCOMC__)
+#if defined(__TARGET_SCL__) || defined(__CC_NORCROFT) || defined(_MSC_VER) || defined(__WATCOMC__)
 #include "ext/getopt/getopt.h"
 #else
 #include <getopt.h>

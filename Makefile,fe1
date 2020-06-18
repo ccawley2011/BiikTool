@@ -1,0 +1,21 @@
+CC = cc
+LD = link
+
+CFLAGS = -IC: -throwback -D_LARGEFILE_SOURCE
+LDFLAGS = -aif
+
+OBJS = @.o.main @.o.debug @.o.archive @.o.extract @.o.compress @.o.musx C:o.stubs
+EXECUTABLE = @.biik-tool
+
+all: $(EXECUTABLE)
+
+$(EXECUTABLE):  $(OBJS)
+        $(LD) $(LDFLAGS) -o $@ $(OBJS)
+
+.c.o:
+	@CDir @.o
+        $(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	Remove $(EXECUTABLE)
+	X Wipe @.o ~CFR~V

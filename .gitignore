@@ -5,3 +5,4 @@ biik-tool
 *.elf
 *.exe
 *,ff8
+*,ffd

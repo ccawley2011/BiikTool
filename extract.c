@@ -5,9 +5,9 @@
 #include "mini_io.h"
 #include "musx.h"
 
-#ifdef __riscos__
-#include <kernel.h>
-#include <swis.h>
+#ifdef __riscos
+#include "kernel.h"
+#include "swis.h"
 #elif defined(_WIN32) || defined(__WATCOMC__)
 #include <direct.h>
 #include <io.h>
@@ -19,7 +19,7 @@
 #define snprintf(a,b,...) _snprintf_s(a,b,_TRUNCATE,__VA_ARGS__)
 #endif
 
-#ifdef __riscos__
+#ifdef __riscos
 # define PATH_SEP "."
 #elif defined(_WIN32)
 # define PATH_SEP "\\"
@@ -28,7 +28,7 @@
 #endif
 
 static void my_mkdir(const char *path) {
-#ifdef __riscos__
+#ifdef __riscos
 	_kernel_swi_regs regs;
 	regs.r[0] = 8;
 	regs.r[1] = (int)path;
@@ -43,7 +43,7 @@ static void my_mkdir(const char *path) {
 }
 
 static void my_settype(const char *path, int type) {
-#ifdef __riscos__
+#ifdef __riscos
 	_kernel_swi_regs regs;
 	regs.r[0] = 18;
 	regs.r[1] = (int)path;
@@ -79,8 +79,7 @@ mini_io_context *open_output_file(const char *path, const char *name, int ftype,
 
 uint32_t dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
 	mini_io_context *input, *output;
-	off_t size;
-	size_t read;
+	size_t size, read;
 
 	input = open_archive_entry(context, entry, 0);
 	if (!input)
@@ -92,7 +91,7 @@ uint32_t dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry,
 		return 0;
 	}
 
-	size = MiniIO_Size(input);
+	size = (size_t)MiniIO_Size(input);
 	read = MiniIO_Copy(input, output, size, 1);
 
 	MiniIO_DeleteContext(output);

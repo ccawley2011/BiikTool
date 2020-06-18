@@ -39,8 +39,8 @@ int entry_to_file_type(uint32_t type) {
 }
 
 mini_io_context *open_archive_entry(mini_io_context *input, biik_archive_entry *entry, int safe) {
-	off_t start = entry->offset + entry->header_size;
-	off_t size = entry->size - entry->header_size;
+	uint32_t start = entry->offset + entry->header_size;
+	uint32_t size = entry->size - entry->header_size;
 	return MiniIO_CreateFromContext(input, start, size, 0, safe);
 }
 

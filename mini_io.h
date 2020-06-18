@@ -15,7 +15,7 @@
 /* TODO: Use our own types? */
 #ifdef _MSC_VER
 typedef __int64 off_t;
-#else
+#elif !defined(__CC_NORCROFT)
 #include <sys/types.h>
 #endif
 
@@ -174,7 +174,7 @@ mini_io_context *MiniIO_CreateFromContext(mini_io_context *parent, off_t start, 
 #  else
 #   error Unsupported value of __BYTE_ORDER__.
 #  endif
-# elif defined(_MSC_VER) || defined(__WATCOMC__)
+# elif defined(_MSC_VER) || defined(__WATCOMC__) || defined(__riscos)
 #  define MINI_IO_ENDIAN MINI_IO_LITTLE_ENDIAN
 # else
 #  warning Could not determine byte order, assuming little endian.
