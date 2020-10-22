@@ -45,15 +45,9 @@ struct mini_io_context {
 };
 
 enum {
-#ifdef MINI_IO_DISABLE_STDIO
 	MINI_IO_SEEK_SET,
 	MINI_IO_SEEK_CUR,
 	MINI_IO_SEEK_END
-#else
-	MINI_IO_SEEK_SET = SEEK_SET,
-	MINI_IO_SEEK_CUR = SEEK_CUR,
-	MINI_IO_SEEK_END = SEEK_END
-#endif
 };
 
 enum {
@@ -507,10 +501,21 @@ static size_t mini_io_stdio_write(mini_io_context *context, const void *ptr, siz
 
 static void mini_io_stdio_seek(mini_io_context *context, off_t n, int whence) {
 	mini_io_stdio_data *data = (mini_io_stdio_data *)context->data;
+	int fseek_whence = whence;
+
+	switch(whence) {
+	case MINI_IO_SEEK_SET: fseek_whence = SEEK_SET; break;
+	case MINI_IO_SEEK_CUR: fseek_whence = SEEK_CUR; break;
+	case MINI_IO_SEEK_END: fseek_whence = SEEK_END; break;
+	default:
+		assert(0);
+		return;
+	}
+
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__WATCOMC__)
-	_fseeki64(data->fp, n, whence);
+	_fseeki64(data->fp, n, fseek_whence);
 #else
-	fseeko(data->fp, n, whence);
+	fseeko(data->fp, n, fseek_whence);
 #endif
 }
 
