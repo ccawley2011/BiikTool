@@ -13,6 +13,7 @@ const char *get_game_name(uint32_t id) {
 	case GAME_ID_DINOSAUR:  return "Dinosaur Discovery";
 	case GAME_ID_BETSI:     return "Betsi the Tudor Dog";
 	case GAME_ID_GUARDIANS: return "Guardians of the Greenwood";
+	case GAME_ID_PATCH:     return "Patch the Puppy";
 	case GAME_ID_FIFI:      return "Find It Fix It";
 	case GAME_ID_DARRYL:    return "Darryl the Dragon";
 	default:                return "(unknown game)";
