@@ -4,7 +4,7 @@ RM = del
 
 CFLAGS = /Ox /W4 /MT
 
-OBJS = main.obj debug.obj archive.obj extract.obj compress.obj musx.obj
+OBJS = main.obj debug.obj archive.obj extract.obj compress.obj musx.obj adpcm.obj g711.obj
 EXECUTABLE = biik-tool.exe
 
 all: $(EXECUTABLE)

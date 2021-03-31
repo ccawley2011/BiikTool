@@ -3,6 +3,17 @@
 #include "debug.h"
 #include "mini_io.h"
 
+extern void adpcm(mini_io_context * input, short * output, uint32_t insize);
+unsigned char linear2ulaw(short pcm_val);
+
+static unsigned char ulaw2vidc(unsigned char uval) {
+	return ~(((uval >> 7) & 0x01) | ((uval << 1) & 0xFE));
+}
+
+static unsigned char linear2vidc(short pcm_val) {
+	return ulaw2vidc(linear2ulaw(pcm_val));
+}
+
 iff_tag read_tag(mini_io_context *context) {
 	iff_tag tag;
 	MiniIO_Read(context, tag.id, 4, 1);
@@ -68,13 +79,33 @@ uint32_t decompress_musx_comp_null(mini_io_context *input, mini_io_context *outp
 	return sizeof(blank_sample);
 }
 
+uint32_t decompress_musx_comp_adpcm(mini_io_context *input, mini_io_context *output, iff_tag comp) {
+	off_t start = MiniIO_Tell(input) - 4;
+	iff_tag tag = read_tag(input);
+	uint32_t i, adpcm_size = comp.length - 12;
+	short *slin_data = malloc (adpcm_size * 4);
+	if (!slin_data)
+		return 0;
+
+	adpcm(input, slin_data, adpcm_size);
+	MiniIO_Seek(input, start + comp.length, MINI_IO_SEEK_SET);
+
+	write_tag(output, tag);
+	for (i = 0; i < tag.length; i++) {
+		MiniIO_WriteU8(output, linear2vidc(slin_data[i]));
+	}
+	free(slin_data);
+
+	return tag.length + 8;
+}
+
 uint32_t decompress_musx_comp(mini_io_context *input, mini_io_context *output, iff_tag comp) {
 	uint32_t type = MiniIO_ReadLE32(input);
 	switch (type) {
 	case 1: return decompress_musx_comp_lzw(input, output, comp);
 	/* TODO: Support GSM decompression */
 	case 3: return decompress_musx_comp_null(input, output, comp);
-	/* TODO: Support ADPCM decompression */
+	case 4: return decompress_musx_comp_adpcm(input, output, comp);
 	default:
 		warningf("Unrecognised compression type %d", type);
 		break;
