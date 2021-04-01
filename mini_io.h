@@ -28,7 +28,7 @@ typedef struct mini_io_context mini_io_context;
 typedef struct mini_io_callbacks {
 	size_t (*read)(mini_io_context *context, void *ptr, size_t size, size_t maxnum);
 	size_t (*write)(mini_io_context *context, const void *ptr, size_t size, size_t num);
-	void (*seek)(mini_io_context *context, off_t n, int whence);
+	int (*seek)(mini_io_context *context, off_t n, int whence);
 	off_t (*tell)(mini_io_context *context);
 	off_t (*size)(mini_io_context *context);
 	int (*eof)(mini_io_context *context);
@@ -60,7 +60,7 @@ enum {
 
 size_t MiniIO_Read(mini_io_context *context, void *ptr, size_t size, size_t maxnum);
 size_t MiniIO_Write(mini_io_context *context, const void *ptr, size_t size, size_t num);
-void MiniIO_Seek(mini_io_context *context, off_t n, int whence);
+int MiniIO_Seek(mini_io_context *context, off_t n, int whence);
 off_t MiniIO_Tell(mini_io_context *context);
 off_t MiniIO_Size(mini_io_context *context);
 int MiniIO_EOF(mini_io_context *context);
@@ -221,9 +221,9 @@ size_t MiniIO_Write(mini_io_context *context, const void *ptr, size_t size, size
 	return context->callbacks->write(context, ptr, size, num);
 }
 
-void MiniIO_Seek(mini_io_context *context, off_t n, int whence) {
+int MiniIO_Seek(mini_io_context *context, off_t n, int whence) {
 	assert(context);
-	context->callbacks->seek(context, n, whence);
+	return context->callbacks->seek(context, n, whence);
 }
 
 off_t MiniIO_Tell(mini_io_context *context) {
@@ -499,7 +499,7 @@ static size_t mini_io_stdio_write(mini_io_context *context, const void *ptr, siz
 	return fwrite(ptr, size, num, data->fp);
 }
 
-static void mini_io_stdio_seek(mini_io_context *context, off_t n, int whence) {
+static int mini_io_stdio_seek(mini_io_context *context, off_t n, int whence) {
 	mini_io_stdio_data *data = (mini_io_stdio_data *)context->data;
 	int fseek_whence = whence;
 
@@ -509,13 +509,13 @@ static void mini_io_stdio_seek(mini_io_context *context, off_t n, int whence) {
 	case MINI_IO_SEEK_END: fseek_whence = SEEK_END; break;
 	default:
 		assert(0);
-		return;
+		return -1;
 	}
 
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__WATCOMC__)
-	_fseeki64(data->fp, n, fseek_whence);
+	return _fseeki64(data->fp, n, fseek_whence);
 #else
-	fseeko(data->fp, n, fseek_whence);
+	return fseeko(data->fp, n, fseek_whence);
 #endif
 }
 
@@ -624,7 +624,7 @@ static size_t mini_io_mem_write(mini_io_context *context, const void *ptr, size_
 	return num;
 }
 
-static void mini_io_mem_seek(mini_io_context *context, off_t n, int whence) {
+static int mini_io_mem_seek(mini_io_context *context, off_t n, int whence) {
 	mini_io_mem_data *data = (mini_io_mem_data *)context->data;
 	char *newpos;
 
@@ -634,10 +634,11 @@ static void mini_io_mem_seek(mini_io_context *context, off_t n, int whence) {
 	case MINI_IO_SEEK_END: newpos = data->end + n; break;
 	default:
 		assert(0);
-		return;
+		return -1;
 	}
 
 	data->ptr = MINI_IO_CLAMP(newpos, data->mem, data->end);
+	return 0;
 }
 
 static off_t mini_io_mem_tell(mini_io_context *context) {
@@ -741,7 +742,7 @@ static size_t mini_io_sub_write(mini_io_context *context, const void *ptr, size_
 	return 0;
 }
 
-static void mini_io_sub_seek(mini_io_context *context, off_t n, int whence) {
+static int mini_io_sub_seek(mini_io_context *context, off_t n, int whence) {
 	mini_io_sub_data *data = (mini_io_sub_data *)context->data;
 	off_t newpos;
 
@@ -751,11 +752,11 @@ static void mini_io_sub_seek(mini_io_context *context, off_t n, int whence) {
 	case MINI_IO_SEEK_END: newpos = data->end + n; break;
 	default:
 		assert(0);
-		return;
+		return -1;
 	}
 
 	data->pos = MINI_IO_CLAMP(newpos, data->start, data->end);
-	MiniIO_Seek(data->parent, data->pos, MINI_IO_SEEK_SET);
+	return MiniIO_Seek(data->parent, data->pos, MINI_IO_SEEK_SET);
 }
 
 static off_t mini_io_sub_tell(mini_io_context *context) {
