@@ -1,6 +1,8 @@
 #include "archive.h"
-#include "debug.h"
 #include "extract.h"
+#include "utils.h"
+
+#include <stdlib.h>
 
 #if defined(__TARGET_SCL__) || defined(__CC_NORCROFT) || defined(_MSC_VER) || defined(__WATCOMC__)
 #include "ext/getopt/getopt.h"
@@ -8,13 +10,10 @@
 #include <getopt.h>
 #endif
 
-#define MINI_IO_IMPLEMENTATION
-#include "mini_io.h"
-
 const char *syntax_string = "Syntax: %s [-c] [-l] [-n] [-o <output dir>] [-q] <filename>\n";
 
 int main(int argc, char **argv) {
-	mini_io_context *context;
+	FILE *context;
 	biik_archive_header *header;
 	int convert = 0, list_files = 0, nfs_ext = 0, quiet = 0;
 	const char *infile = NULL, *outpath = NULL;
@@ -51,7 +50,7 @@ int main(int argc, char **argv) {
 		infile = argv[optind];
 	}
 
-	context = MiniIO_OpenFile(infile, MINI_IO_OPEN_READ);
+	context = fopen(infile, "rb");
 	if (!context) {
 		warningf("Could not open file %s", infile);
 		return 1;
@@ -59,7 +58,7 @@ int main(int argc, char **argv) {
 
 	header = read_archive_header(context);
 	if (!header) {
-		MiniIO_DeleteContext(context);
+		fclose(context);
 		return 1;
 	}
 
@@ -84,6 +83,6 @@ int main(int argc, char **argv) {
 	if (list_files)
 		fputc('\n', stderr);
 
-	MiniIO_DeleteContext(context);
+	fclose(context);
 	return 0;
 }

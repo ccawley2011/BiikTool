@@ -1,8 +1,8 @@
 #include <assert.h>
+#include <stdio.h>
 #include <stdint.h>
 
 #include "compress.h"
-#include "mini_io.h"
 
 /*
  * LZW decompression based on http://ttf.mine.nu/techdocs/unpack.pl
@@ -26,12 +26,12 @@ struct lzw_dict {
 
 #define LZW_FIRST_BYTE(x, y) (char)(x < FIRST_CODE ? x : y[x - FIRST_CODE].first_byte)
 
-uint32_t lzw_decode(mini_io_context *in, char *out, uint32_t outsize) {
+uint32_t lzw_decode(FILE *in, char *out, uint32_t outsize) {
 	struct lzw_dict dict[MAX_TABLE];
 	unsigned int bitpos = 0, nbit = SET_BITS + 1;
 	uint16_t dictsize = FIRST_CODE;
 	uint16_t prev = CLEAR_CODE;
-	uint32_t buf24 = ((MiniIO_ReadU8(in) << 16) | (MiniIO_ReadU8(in) << 8) | MiniIO_ReadU8(in));
+	uint32_t buf24 = ((fgetc(in) << 16) | (fgetc(in) << 8) | fgetc(in));
 	uint32_t size = 0;
 
 	while (prev != END_CODE) {
@@ -44,9 +44,9 @@ uint32_t lzw_decode(mini_io_context *in, char *out, uint32_t outsize) {
 		/* Get next codeword */
 		bitpos += nbit;
 		cw = (buf24 >> (24-bitpos)) & ((1 << nbit) - 1);
-		buf24 = (buf24 << 8) + MiniIO_ReadU8(in);
+		buf24 = (buf24 << 8) + fgetc(in);
 		if (bitpos >= 16) {
-			buf24 = (buf24 << 8) + MiniIO_ReadU8(in);
+			buf24 = (buf24 << 8) + fgetc(in);
 		}
 		buf24 &= 0xFFFFFF;
 		bitpos &= 7;

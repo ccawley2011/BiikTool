@@ -44,7 +44,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ** - Changed some of the variable names to be more meaningful.
 */
 
+#include <stdint.h>
 #include <stdio.h> /*DBG*/
+#include <string.h>
 #define NSAMPLES   1000
 
 
@@ -149,9 +151,7 @@ void adpcm_decoder(char indata[500], short outdata[1000], struct adpcm_state *st
 }
 
 
-#include "mini_io.h"
-
-void adpcm(mini_io_context * input, short * output, uint32_t insize)
+void adpcm(FILE * input, short * output, uint32_t insize)
 {
      char  abuf[NSAMPLES/2];
      short sbuf[NSAMPLES];
@@ -165,7 +165,7 @@ void adpcm(mini_io_context * input, short * output, uint32_t insize)
              abuf_size = insize;
          insize -= abuf_size;
 
-         abuf_size = MiniIO_Read(input, abuf, 1, abuf_size);
+         abuf_size = fread(abuf, 1, abuf_size, input);
          if (abuf_size == 0)
              return;
          

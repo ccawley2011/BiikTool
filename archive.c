@@ -1,9 +1,9 @@
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
 #include "archive.h"
-#include "debug.h"
-#include "mini_io.h"
+#include "utils.h"
 
 const char *get_game_name(uint32_t id) {
 	switch (id) {
@@ -39,15 +39,10 @@ int entry_to_file_type(uint32_t type) {
 	}
 }
 
-mini_io_context *open_archive_entry(mini_io_context *input, biik_archive_entry *entry, int safe) {
-	uint32_t start = entry->offset + entry->header_size;
-	uint32_t size = entry->size - entry->header_size;
-	return MiniIO_CreateFromContext(input, start, size, 0, safe);
-}
-
-biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
+biik_archive_entry *read_archive_entry(FILE *archive, long file_size, int be) {
 	biik_archive_entry *entry;
-	off_t last_pos, file_size;
+	long last_pos;
+	unsigned char buf[12];
 
 	entry = malloc(sizeof(biik_archive_entry));
 	if (!entry) {
@@ -56,8 +51,9 @@ biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
 	}
 	memset(entry, 0, sizeof(biik_archive_entry));
 
-	entry->entry_size = MiniIO_ReadU32(archive, endian);
-	entry->offset = MiniIO_ReadU32(archive, endian);
+	fread(buf, 8, 1, archive);
+	entry->entry_size = read_u32(buf + 0, be);
+	entry->offset = read_u32(buf + 4, be);
 
 	entry->name = malloc(entry->entry_size - 0x8);
 	if (!entry->name) {
@@ -65,20 +61,20 @@ biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
 		free(entry);
 		return NULL;
 	}
-	MiniIO_Read(archive, entry->name, 1, entry->entry_size - 0x8);
+	fread(entry->name, 1, entry->entry_size - 0x8, archive);
 
-	last_pos = MiniIO_Tell(archive);
-	file_size = MiniIO_Size(archive);
-	MiniIO_Seek(archive, entry->offset, MINI_IO_SEEK_SET);
+	last_pos = ftell(archive);
+	fseek(archive, entry->offset, SEEK_SET);
 
-	entry->type = MiniIO_ReadU32(archive, endian);
-	entry->size = MiniIO_ReadU32(archive, endian);
-	entry->header_size = MiniIO_ReadU32(archive, endian);
+	fread(buf, 12, 1, archive);
+	entry->type = read_u32(buf + 0, be);
+	entry->size = read_u32(buf + 4, be);
+	entry->header_size = read_u32(buf + 8, be);
 	if ((entry->offset + entry->size > (uint32_t)file_size) ||
 	    (entry->offset + entry->header_size > (uint32_t)file_size) ||
 	    (entry->header_size > entry->size)) {
 		warningf("Invalid header for file '%s'", entry->name);
-		MiniIO_Seek(archive, last_pos, MINI_IO_SEEK_SET);
+		fseek(archive, last_pos, SEEK_SET);
 		free(entry->name);
 		free(entry);
 		return NULL;
@@ -87,17 +83,17 @@ biik_archive_entry *read_archive_entry(mini_io_context *archive, int endian) {
 	entry->name2 = malloc(entry->header_size - 0xC);
 	if (!entry->name2) {
 		warning("Out of memory");
-		MiniIO_Seek(archive, last_pos, MINI_IO_SEEK_SET);
+		fseek(archive, last_pos, SEEK_SET);
 		free(entry->name);
 		free(entry);
 		return NULL;
 	}
-	MiniIO_Read(archive, entry->name2, 1, entry->header_size - 0xC);
+	fread(entry->name2, 1, entry->header_size - 0xC, archive);
 
 	if (strcmp(entry->name, entry->name2) != 0)
 		warningf("Entry names '%s' and '%s' do not match", entry->name, entry->name2);
 
-	MiniIO_Seek(archive, last_pos, MINI_IO_SEEK_SET);
+	fseek(archive, last_pos, SEEK_SET);
 	return entry;
 }
 
@@ -110,13 +106,26 @@ void free_archive_entry(biik_archive_entry *entry) {
 	free(entry);
 }
 
-biik_archive_header *read_archive_header(mini_io_context *archive) {
+biik_archive_header *read_archive_header(FILE *archive) {
 	biik_archive_header *header;
-	int endian = MINI_IO_LITTLE_ENDIAN;
-	off_t file_size = MiniIO_Size(archive);
-	if (file_size < 18) {
+	int be = 0;
+	long file_size;
+	unsigned char buf[24];
+
+	file_size = fsize(archive);
+
+	if (fread(buf, 24, 1, archive) != 1) {
+		warning("Could not read archive header");
+		return NULL;
+	}
+
+	if (memcmp(buf, "BIIK-DJC", 8) != 0) {
 		warning("This is not a Biik archive");
 		return NULL;
+	}
+
+	if (buf[11]) {
+		be = 1;
 	}
 
 	header = malloc(sizeof(biik_archive_header));
@@ -126,27 +135,17 @@ biik_archive_header *read_archive_header(mini_io_context *archive) {
 	}
 	memset(header, 0, sizeof(biik_archive_header));
 
-	MiniIO_Read(archive, header->signature, 1, 8);
-	header->size = MiniIO_ReadLE32(archive);
-	if (header->size > 0xFFFFFF) {
-		header->size = MINI_IO_BSWAP32(header->size);
-		endian = MINI_IO_BIG_ENDIAN;
-	}
+	memcpy(header->signature, buf, 8);
+	header->size = read_u32(buf + 8, be);
+	header->version = read_u32(buf + 12, be);
+	header->game_id = read_u32(buf + 16, be);
+	header->index_offset = read_u32(buf + 20, be);
 
-	if (strncmp(header->signature, "BIIK-DJC", 8) != 0) {
-		warning("This is not a Biik archive");
-		free(header);
-		return NULL;
-	}
-	if (header->size < 0x18) {
+	if (header->size < 24) {
 		warning("File is too small to be a Biik archive");
 		free(header);
 		return NULL;
 	}
-
-	header->version = MiniIO_ReadU32(archive, endian);
-	header->game_id = MiniIO_ReadU32(archive, endian);
-	header->index_offset = MiniIO_ReadU32(archive, endian);
 
 	if ((uint32_t)file_size < header->index_offset + 12) {
 		warning("Archive index is outside the file");
@@ -154,11 +153,12 @@ biik_archive_header *read_archive_header(mini_io_context *archive) {
 		return NULL;
 	}
 
-	MiniIO_Seek(archive, header->index_offset, MINI_IO_SEEK_SET);
+	fseek(archive, header->index_offset, SEEK_SET);
 
-	header->unknown = MiniIO_ReadU32(archive, endian);
-	header->index_size = MiniIO_ReadU32(archive, endian);
-	header->index_header_size = MiniIO_ReadU32(archive, endian);
+	fread(buf, 12, 1, archive);
+	header->unknown = read_u32(buf + 0, be);
+	header->index_size = read_u32(buf + 4, be);
+	header->index_header_size = read_u32(buf + 8, be);
 	if ((uint32_t)file_size < header->index_offset + header->index_header_size) {
 		warning("Invalid header for archive index");
 		free(header);
@@ -174,17 +174,17 @@ biik_archive_header *read_archive_header(mini_io_context *archive) {
 		free(header);
 		return NULL;
 	}
-	MiniIO_Read(archive, header->index_title, 1, header->index_header_size - 0xC);
+	fread(header->index_title, 1, header->index_header_size - 0xC, archive);
 
 	if (strcmp(header->index_title, "File index") != 0 || header->unknown != 3)
 		warningf("Unexpected index header: '%s' (%d)", header->index_title, header->unknown);
 
 	header->entry_count = 0;
 	header->entries = malloc(sizeof(void *));
-	while (MiniIO_Tell(archive) < file_size) {
+	while (ftell(archive) < file_size) {
 		void *new_block;
 		header->entries[header->entry_count++] =
-			read_archive_entry(archive, endian);
+			read_archive_entry(archive, file_size, be);
 
 		new_block = realloc(header->entries,
 			(header->entry_count + 1) * sizeof(void *));

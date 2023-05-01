@@ -1,9 +1,11 @@
 #include "archive.h"
 #include "compress.h"
-#include "debug.h"
 #include "extract.h"
-#include "mini_io.h"
 #include "musx.h"
+#include "utils.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef __riscos
 #include "kernel.h"
@@ -55,8 +57,8 @@ static void my_settype(const char *path, int type) {
 #endif
 }
 
-mini_io_context *open_output_file(const char *path, const char *name, int ftype, int nfs_exts) {
-	mini_io_context *output;
+FILE *open_output_file(const char *path, const char *name, int ftype, int nfs_exts) {
+	FILE *output;
 	char filename[1024];
 
 	if (nfs_exts) {
@@ -66,7 +68,7 @@ mini_io_context *open_output_file(const char *path, const char *name, int ftype,
 	}
 
 	my_mkdir(path);
-	output = MiniIO_OpenFile(filename, MINI_IO_OPEN_WRITE);
+	output = fopen(filename, "wb");
 	if (!output) {
 		warningf("Could not open file %s", filename);
 		return NULL;
@@ -77,72 +79,59 @@ mini_io_context *open_output_file(const char *path, const char *name, int ftype,
 	return output;
 }
 
-uint32_t dump_entry_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
-	mini_io_context *input, *output;
+uint32_t dump_entry_to_file(FILE *input, biik_archive_entry *entry, const char *path, int nfs_exts) {
+	FILE *output;
 	size_t size, read;
-
-	input = open_archive_entry(context, entry, 0);
-	if (!input)
-		return 0;
 
 	output = open_output_file(path, entry->name, entry_to_file_type(entry->type), nfs_exts);
 	if (!output) {
-		MiniIO_DeleteContext(input);
 		return 0;
 	}
 
-	size = (size_t)MiniIO_Size(input);
-	read = MiniIO_Copy(input, output, size, 1);
+	size = (size_t)(entry->size - entry->header_size);
+	read = fcopy(input, output, size);
 
-	MiniIO_DeleteContext(output);
-	MiniIO_DeleteContext(input);
+	fclose(output);
 
-	return (uint32_t)(size * read);
+	return (uint32_t)(read);
 }
 
-uint32_t dump_tracker_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
-	mini_io_context *input, *output;
+uint32_t dump_tracker_to_file(FILE *input, biik_archive_entry *entry, const char *path, int nfs_exts) {
+	FILE *output;
 	uint32_t size;
-
-	input = open_archive_entry(context, entry, 0);
-	if (!input)
-		return 0;
 
 	output = open_output_file(path, entry->name, 0xcb6, nfs_exts);
 	if (!output) {
-		MiniIO_DeleteContext(input);
 		return 0;
 	}
 
 	size = decompress_musx(input, output);
 
-	MiniIO_DeleteContext(output);
-	MiniIO_DeleteContext(input);
+	fclose(output);
 
 	return size;
 }
 
-uint32_t dump_script_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts) {
-	mini_io_context *input, *output;
+uint32_t dump_script_to_file(FILE *input, biik_archive_entry *entry, const char *path, int nfs_exts) {
+	FILE *output;
 	uint32_t unknown, size, realsize;
+	unsigned char buf[8];
 	char *block;
 
-	input = open_archive_entry(context, entry, 0);
-	if (!input)
-		return 0;
+	fread(buf, 8, 1, input);
 
-	unknown = MiniIO_ReadLE32(input);
-	size = MiniIO_ReadLE32(input);
-	if (unknown > 0xFFFFFF) {
-		unknown = MINI_IO_BSWAP32(unknown);
-		size = MINI_IO_BSWAP32(size);
+	if (buf[3]) {
+		unknown = read_u32(buf + 0, 1);
+		size = read_u32(buf + 4, 1);
+	} else {
+		unknown = read_u32(buf + 0, 0);
+		size = read_u32(buf + 4, 0);
 	}
 	if (unknown != 1)
 		warningf("Unexpected script header: %d", unknown);
 
 	block = malloc(size);
 	if (!block) {
-		MiniIO_DeleteContext(input);
 		return 0;
 	}
 
@@ -150,22 +139,22 @@ uint32_t dump_script_to_file(mini_io_context *context, biik_archive_entry *entry
 	if (size != realsize)
 		warningf("Unexpected end of stream in file %s: expected %d bytes, got %d bytes", entry->name, size, realsize);
 
-	MiniIO_DeleteContext(input);
-
 	output = open_output_file(path, entry->name, 0xfff, nfs_exts);
 	if (!output) {
 		free(block);
 		return 0;
 	}
 
-	MiniIO_Write(output, block, realsize, 1);
-	MiniIO_DeleteContext(output);
+	fwrite(block, realsize, 1, output);
+	fclose(output);
 	free(block);
 
 	return realsize;
 }
 
-uint32_t dump_to_file(mini_io_context *context, biik_archive_entry *entry, const char *path, int nfs_exts, int convert) {
+uint32_t dump_to_file(FILE *context, biik_archive_entry *entry, const char *path, int nfs_exts, int convert) {
+	fseek(context, (long)(entry->offset + entry->header_size), SEEK_SET);
+
 	if (convert) {
 		switch (entry->type) {
 		case ENTRY_TYPE_TRACKER:

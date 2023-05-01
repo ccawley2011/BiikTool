@@ -1,10 +1,10 @@
 CC = cc
 LD = link
 
-CFLAGS = -IC: -throwback -D_LARGEFILE_SOURCE
+CFLAGS = -IC: -throwback
 LDFLAGS = -aif
 
-OBJS = @.o.main @.o.debug @.o.archive @.o.extract @.o.compress @.o.musx @.o.adpcm @.o.g711 C:o.stubs
+OBJS = @.o.main @.o.utils @.o.archive @.o.extract @.o.compress @.o.musx @.o.adpcm @.o.g711 C:o.stubs
 EXECUTABLE = @.biik-tool
 
 all: $(EXECUTABLE)

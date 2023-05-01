@@ -1,15 +1,21 @@
 #ifndef MUSX_H
 #define MUSX_H
 
-#include "mini_io.h"
+#include <stdint.h>
+#include <stdio.h>
+
+typedef enum {
+	tag_MUSX = 0x5853554D,
+	tag_SAMP = 0x504D4153,
+	tag_COMP = 0x504D4F43
+} iff_tag_id;
 
 typedef struct {
-	char id[4];
-	uint32_t length;
+	uint32_t id, length;
 } iff_tag;
 
-uint32_t decompress_musx_inner(mini_io_context *input, mini_io_context *output, iff_tag parent);
-uint32_t decompress_musx_outer(mini_io_context *input, mini_io_context *output, iff_tag parent);
-uint32_t decompress_musx(mini_io_context *input, mini_io_context *output);
+uint32_t decompress_musx_inner(FILE *input, FILE *output, iff_tag parent);
+uint32_t decompress_musx_outer(FILE *input, FILE *output, iff_tag parent);
+uint32_t decompress_musx(FILE *input, FILE *output);
 
 #endif
