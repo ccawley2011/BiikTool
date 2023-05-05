@@ -10,6 +10,12 @@
 # define PRINTF_ATTR(x,y)
 #endif
 
+#ifdef _MSC_VER
+# if _MSC_VER < 1900
+#  define snprintf(a,b,...) _snprintf_s(a,b,_TRUNCATE,__VA_ARGS__)
+# endif
+#endif
+
 void warning(const char *message);
 void warningf(const char *message, ...) PRINTF_ATTR(1,2);
 

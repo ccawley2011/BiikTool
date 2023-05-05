@@ -1,5 +1,6 @@
 #include "archive.h"
 #include "compress.h"
+#include "graphics.h"
 #include "extract.h"
 #include "musx.h"
 #include "utils.h"
@@ -15,10 +16,6 @@
 #include <io.h>
 #else
 #include <sys/stat.h>
-#endif
-
-#if defined(_MSC_VER) && (_MSC_VER < 1900)
-#define snprintf(a,b,...) _snprintf_s(a,b,_TRUNCATE,__VA_ARGS__)
 #endif
 
 #ifdef __riscos
@@ -96,6 +93,22 @@ uint32_t dump_entry_to_file(FILE *input, biik_archive_entry *entry, const char *
 	return (uint32_t)(read);
 }
 
+uint32_t dump_graphic_to_file(FILE *input, biik_archive_entry *entry, const char *path, int nfs_exts) {
+	FILE *output;
+	uint32_t size;
+
+	output = open_output_file(path, entry->name, 0xff9, nfs_exts);
+	if (!output) {
+		return 0;
+	}
+
+	size = decompress_graphic(input, output);
+
+	fclose(output);
+
+	return size;
+}
+
 uint32_t dump_tracker_to_file(FILE *input, biik_archive_entry *entry, const char *path, int nfs_exts) {
 	FILE *output;
 	uint32_t size;
@@ -157,6 +170,8 @@ uint32_t dump_to_file(FILE *context, biik_archive_entry *entry, const char *path
 
 	if (convert) {
 		switch (entry->type) {
+		case ENTRY_TYPE_GRAPHIC:
+			return dump_graphic_to_file(context, entry, path, nfs_exts);
 		case ENTRY_TYPE_TRACKER:
 			return dump_tracker_to_file(context, entry, path, nfs_exts);
 		case ENTRY_TYPE_SCRIPT:

@@ -87,10 +87,14 @@ uint32_t lzw_decode(FILE *in, unsigned char *out, uint32_t outsize) {
 			}
 			temp[j++] = (unsigned char)outcw;
 
-			for (i = j; i > 0; i--) {
-				out[size++] = temp[i-1];
-				if (size > outsize)
-					return size;
+			if (out) {
+				for (i = j; i > 0; i--) {
+					out[size++] = temp[i-1];
+					if (size >= outsize)
+						return size;
+				}
+			} else {
+				size += j;
 			}
 		}
 		prev = cw;
