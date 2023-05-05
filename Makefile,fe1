@@ -1,8 +1,10 @@
 CC = cc
 LD = link
+SQZ = squeeze
 
 CFLAGS = -IC: -throwback
 LDFLAGS = -aif
+SQZFLAGS =
 
 OBJS = @.o.main @.o.utils @.o.archive @.o.extract @.o.compress @.o.musx @.o.adpcm @.o.g711 C:o.stubs
 EXECUTABLE = @.biik-tool
@@ -11,6 +13,7 @@ all: $(EXECUTABLE)
 
 $(EXECUTABLE):  $(OBJS)
         $(LD) $(LDFLAGS) -o $@ $(OBJS)
+        $(SQZ) $(SQZFLAGS) $@
 
 .c.o:
 	@CDir @.o
