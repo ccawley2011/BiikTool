@@ -52,7 +52,7 @@ long fsize(FILE *context) {
 }
 
 
-uint32_t read_u32(unsigned char *buf, int be) {
+uint32_t read_u32(const unsigned char *buf, int be) {
 	uint32_t val = 0;
 	if (be) {
 		val  = buf[3];

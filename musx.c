@@ -37,7 +37,7 @@ uint32_t decompress_musx_comp_lzw(FILE *input, FILE *output, iff_tag comp) {
 	long start = ftell(input) - 4;
 	iff_tag tag = read_tag(input);
 	uint32_t realsize;
-	char *block = malloc(tag.length);
+	unsigned char *block = malloc(tag.length);
 	if (!block)
 		return 0;
 

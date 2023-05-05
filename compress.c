@@ -21,12 +21,12 @@ enum {
 
 struct lzw_dict {
 	uint16_t prefix;
-	char postfix, first_byte;
+	unsigned char postfix, first_byte;
 };
 
 #define LZW_FIRST_BYTE(x, y) (char)(x < FIRST_CODE ? x : y[x - FIRST_CODE].first_byte)
 
-uint32_t lzw_decode(FILE *in, char *out, uint32_t outsize) {
+uint32_t lzw_decode(FILE *in, unsigned char *out, uint32_t outsize) {
 	struct lzw_dict dict[MAX_TABLE];
 	unsigned int bitpos = 0, nbit = SET_BITS + 1;
 	uint16_t dictsize = FIRST_CODE;
@@ -55,8 +55,8 @@ uint32_t lzw_decode(FILE *in, char *out, uint32_t outsize) {
 		if (cw != CLEAR_CODE && cw != END_CODE) {
 			uint16_t outcw;
 			int i, j = 0;
-			char temp[1024];
-			char newbyte;
+			unsigned char temp[1024];
+			unsigned char newbyte;
 			if (cw < dictsize) {
 				newbyte = LZW_FIRST_BYTE(cw, dict);
 			} else {
@@ -85,7 +85,7 @@ uint32_t lzw_decode(FILE *in, char *out, uint32_t outsize) {
 				outcw = d->prefix;
 				temp[j++] = d->postfix;
 			}
-			temp[j++] = (char)outcw;
+			temp[j++] = (unsigned char)outcw;
 
 			for (i = j; i > 0; i--) {
 				out[size++] = temp[i-1];

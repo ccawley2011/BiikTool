@@ -116,7 +116,7 @@ uint32_t dump_script_to_file(FILE *input, biik_archive_entry *entry, const char 
 	FILE *output;
 	uint32_t unknown, size, realsize;
 	unsigned char buf[8];
-	char *block;
+	unsigned char *block;
 
 	fread(buf, 8, 1, input);
 

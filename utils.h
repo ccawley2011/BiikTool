@@ -17,7 +17,7 @@ void warningf(const char *message, ...) PRINTF_ATTR(1,2);
 size_t fcopy(FILE *input, FILE *output, size_t size);
 long fsize(FILE *context);
 
-uint32_t read_u32(unsigned char *buf, int be);
+uint32_t read_u32(const unsigned char *buf, int be);
 void write_u32(unsigned char *buf, uint32_t val, int be);
 
 #endif
