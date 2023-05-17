@@ -17,9 +17,8 @@ static uint32_t decompress_frame_lzw(FILE *input, unsigned char **sprite, uint32
 		if (!*sprite)
 			return 0;
 	} else if (*spritesize < size) {
-		unsigned char *newsprite = realloc(sprite, size);
+		unsigned char *newsprite = realloc(*sprite, size);
 		if (newsprite) {
-			free(*sprite);
 			*sprite = newsprite;
 			*spritesize = size;
 		} else {
