@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "compress.h"
+#include "utils.h"
 
 /*
  * LZW decompression based on http://ttf.mine.nu/techdocs/unpack.pl
@@ -101,4 +102,37 @@ uint32_t lzw_decode(FILE *in, unsigned char *out, uint32_t outsize) {
 	}
 
 	return size;
+}
+
+void rlexor_decode(const unsigned char *in, uint32_t insize,
+                   unsigned char *out, uint32_t outsize) {
+	const unsigned char *inEnd = in + insize;
+	uint32_t *outPtr = (uint32_t *)out;
+
+	while (in < inEnd) {
+		unsigned char i, code = *in++;
+
+		if ((code & 0x80) == 0) {
+			for (i = 0; i <= code; i++) {
+				uint32_t xorword = read_u32(in, 0);
+				in += 4;
+
+				*outPtr++ ^= xorword;
+			}
+		} else {
+			uint32_t xorword = *in++;
+			code &= 0x7F;
+
+			if (xorword == 0) {
+				outPtr += code + 1;
+			} else {
+				xorword |= xorword << 8;
+				xorword |= xorword << 16;
+
+				for (i = 0; i <= code; i++) {
+					*outPtr++ ^= xorword;
+				}
+			}
+		}
+	}
 }

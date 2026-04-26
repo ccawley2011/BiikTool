@@ -29,6 +29,27 @@ static uint32_t decompress_frame_lzw(FILE *input, unsigned char **sprite, uint32
 	return lzw_decode(input, *sprite, size);
 }
 
+static uint32_t decompress_frame_lzw_delta(FILE *input, unsigned char **sprite, uint32_t *spritesize) {
+	uint32_t spr_offset, data_offset;
+	long start = ftell(input);
+	uint32_t size = lzw_decode(input, NULL, 0);
+	unsigned char *tmp = malloc(size);
+	fseek(input, start, SEEK_SET);
+
+	if (!tmp || !*sprite)
+		return 0;
+
+	if (lzw_decode(input, tmp, size) == 0) {
+		free(tmp);
+		return 0;
+	}
+
+	spr_offset = read_u32(*sprite + 8, 0);
+	data_offset = spr_offset + read_u32(*sprite + spr_offset + 32, 0);
+
+	rlexor_decode(tmp, size, *sprite + data_offset, *spritesize - data_offset);
+	return *spritesize;
+}
 
 static int read_graphic_header(FILE *input, graphic_header *header) {
 	int be = 0;
@@ -139,6 +160,8 @@ uint32_t decompress_graphic(FILE *input, FILE *output) {
 
 		if (frame.method == 2) {
 			decompress_frame_lzw(input, &sprite, &spritesize);
+		} else if (frame.method == 13) {
+			decompress_frame_lzw_delta(input, &sprite, &spritesize);
 		} else {
 			warningf("Unrecognised compression method %d",
 			         frame.method);
